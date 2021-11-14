@@ -38,7 +38,7 @@ async function createLocalImagesNodes(nodeTypes, gatsbyNodeHelpers) {
         return
     }
 
-    const { createNode } = actions
+    const { createNode, createNodeField } = actions
 
     const promises = allImgTags.map((tag) => {
         const imgUrl = node[tag] ? node[tag].replace(/^\/\//, `https://`) : ``
@@ -63,8 +63,9 @@ async function createLocalImagesNodes(nodeTypes, gatsbyNodeHelpers) {
 
     if (fileNodes) {
         fileNodes.map((fileNode, i) => {
-            const id = `local${camelCase(allImgTags[i], { pascalCase: true })}___NODE`
-            node[id] = fileNode.id
+            //const id = `local${camelCase(allImgTags[i], { pascalCase: true })}`
+            //node[id] = fileNode.id
+            createNodeField({ node, name: `local${camelCase(allImgTags[i], { pascalCase: true })}`, value: fileNode.id })
         })
     }
 }
@@ -119,11 +120,14 @@ exports.createPages = async ({ graphql, actions }) => {
     const result = await graphql(`
         {
             blogPosts: allGhostPost(sort: { order: ASC, fields: published_at }
-                filter: {tags: {elemMatch: {name: {nin: ["#podcast","#portfolio","kusi-doc"]}}}}) {
+                filter: {tags: {elemMatch: {name: {nin: ["#podcast","#portfolio","#custom-kusi-doc"]}}}}) {
                 edges {
                     node {
                         slug
-                        custom_template
+                        tags {
+                            name
+                            slug
+                        }
                         primary_tag {
                             slug
                         }
@@ -141,7 +145,10 @@ exports.createPages = async ({ graphql, actions }) => {
                 edges {
                     node {
                         slug
-                        custom_template
+                        tags {
+                            name
+                            slug
+                        }
                         primary_tag {
                             slug
                         }
@@ -159,7 +166,10 @@ exports.createPages = async ({ graphql, actions }) => {
                 edges {
                     node {
                         slug
-                        custom_template
+                        tags {
+                            name
+                            slug
+                        }
                         primary_tag {
                             slug
                         }
@@ -171,11 +181,14 @@ exports.createPages = async ({ graphql, actions }) => {
                 }
             }
             docPosts: allGhostPost(sort: { order: ASC, fields: published_at }
-                filter: {tags: {elemMatch: {name: {in: ["#kusi-doc"]}}}}) {
+                filter: {tags: {elemMatch: {name: {in: ["#custom-kusi-doc"]}}}}) {
                 edges {
                     node {
                         slug
-                        custom_template
+                        tags {
+                            name
+                            slug
+                        }
                         primary_tag {
                             slug
                         }
@@ -209,7 +222,10 @@ exports.createPages = async ({ graphql, actions }) => {
                     node {
                         slug
                         url
-                        custom_template
+                        tags {
+                            name
+                            slug
+                        }
                         internal {
                             type
                         }
@@ -256,6 +272,7 @@ exports.createPages = async ({ graphql, actions }) => {
     const authorTemplate = path.resolve(`./src/templates/author.js`)
     const podcastTemplate = path.resolve(`./src/templates/podcast.js`)
     const portfolioTemplate = path.resolve(`./src/templates/portfolio.js`)
+    const docsTemplate = path.resolve(`./src/templates/docs.js`)
 
     // Create tag pages
     tags.forEach(({ node }) => {
@@ -276,6 +293,7 @@ exports.createPages = async ({ graphql, actions }) => {
             pathPrefix: ({ pageNumber }) => ((pageNumber === 0) ? url : `${url}/page`),
             context: {
                 slug: node.slug,
+                collectionPath: `/tag/`,
             },
         })
     })
@@ -299,6 +317,7 @@ exports.createPages = async ({ graphql, actions }) => {
             pathPrefix: ({ pageNumber }) => ((pageNumber === 0) ? url : `${url}/page`),
             context: {
                 slug: node.slug,
+                collectionPath: `/author/`,
             },
         })
     })
@@ -307,15 +326,16 @@ exports.createPages = async ({ graphql, actions }) => {
     pages.forEach(({ node }) => {
         // This part here defines, that our pages will use
         // a `/:slug/` permalink.
-        node.url = `/${node.slug}/`
+        const url = `/${node.slug}/`
 
         createPage({
-            path: node.url,
+            path: url,
             component: getCustomTemplate(node),
             context: {
                 // Data passed to context is available
                 // in page queries as GraphQL variables.
                 slug: node.slug,
+                collectionPath: `/`,
             },
         })
     })
@@ -324,17 +344,18 @@ exports.createPages = async ({ graphql, actions }) => {
     posts.forEach(({ node }, index) => {
         // This part here defines, that our posts will use
         // a `/:slug/` permalink.
-        node.url = `/${node.slug}/`
+        const url = `/${node.slug}/`
         const prev = index === 0 ? null : posts[index - 1].node
         const next = index === posts.length - 1 ? null : posts[index + 1].node
 
         createPage({
-            path: node.url,
+            path: url,
             component: getCustomTemplate(node),
             context: {
                 // Data passed to context is available
                 // in page queries as GraphQL variables.
                 slug: node.slug,
+                collectionPath: `/`,
                 prev: prev ? prev.slug : null,
                 next: next ? next.slug : null,
                 primary_tag: node.primary_tag ? node.primary_tag.slug : null,
@@ -357,6 +378,7 @@ exports.createPages = async ({ graphql, actions }) => {
                 // Data passed to context is available
                 // in page queries as GraphQL variables.
                 slug: node.slug,
+                collectionPath: `/podcast`,
                 prev: prev ? prev.slug : null,
                 next: next ? next.slug : null,
                 primary_tag: node.primary_tag ? node.primary_tag.slug : null,
@@ -379,6 +401,7 @@ exports.createPages = async ({ graphql, actions }) => {
                 // Data passed to context is available
                 // in page queries as GraphQL variables.
                 slug: node.slug,
+                collectionPath: `/portfolio`,
                 prev: prev ? prev.slug : null,
                 next: next ? next.slug : null,
                 primary_tag: node.primary_tag ? node.primary_tag.slug : null,
@@ -401,6 +424,7 @@ exports.createPages = async ({ graphql, actions }) => {
                 // Data passed to context is available
                 // in page queries as GraphQL variables.
                 slug: node.slug,
+                collectionPath: `/docs`,
                 prev: prev ? prev.slug : null,
                 next: next ? next.slug : null,
                 primary_tag: node.primary_tag ? node.primary_tag.slug : null,
@@ -408,10 +432,40 @@ exports.createPages = async ({ graphql, actions }) => {
         })
     })
 
+    // Create podcasts page with pagination
+    paginate({
+        createPage,
+        items: podcastPosts,
+        itemsPerPage: postsPerPage,
+        component: podcastTemplate,
+        context: {
+            // Data passed to context is available
+            // in page queries as GraphQL variables.
+            collectionPath: `/podcast`,
+        },
+        pathPrefix: ({ pageNumber }) => ((pageNumber === 0) ? `/podcast` : `/podcast/page`),
+    })
+
     // Create portfolio page
     createPage({
         path: `/portfolio`,
         component: portfolioTemplate,
+        context: {
+            // Data passed to context is available
+            // in page queries as GraphQL variables.
+            collectionPath: `/portfolio`,
+        },
+    })
+
+    // Create docs page
+    createPage({
+        path: `/docs`,
+        component: docsTemplate,
+        context: {
+            // Data passed to context is available
+            // in page queries as GraphQL variables.
+            collectionPath: `/docs`,
+        },
     })
 
     // Create archive example page
@@ -580,15 +634,6 @@ exports.createPages = async ({ graphql, actions }) => {
         component: path.resolve(`./src/templates/custom/index-personal.js`),
     })
 
-    // Create podcast pagination
-    paginate({
-        createPage,
-        items: podcastPosts,
-        itemsPerPage: postsPerPage,
-        component: podcastTemplate,
-        pathPrefix: ({ pageNumber }) => ((pageNumber === 0) ? `/podcast` : `/podcast/page`),
-    })
-
     // Create pagination
     paginate({
         createPage,
@@ -614,22 +659,22 @@ exports.createSchemaCustomization = ({ actions }) => {
     const { createTypes } = actions
     createTypes(`
         type GhostPost implements Node {
-            localFeatureImage: File @link(from: "localFeatureImage___NODE")
+            localFeatureImage: File @link(from: "fields.localFeatureImage")
         }
         type GhostPage implements Node {
-            localFeatureImage: File @link(from: "localFeatureImage___NODE")
+            localFeatureImage: File @link(from: "fields.localFeatureImage")
         }
         type GhostAuthor implements Node {
-            localCoverImage: File @link(from: "localCoverImage___NODE")
-            localProfileImage: File @link(from: "localProfileImage___NODE")
+            localCoverImage: File @link(from: "fields.localCoverImage")
+            localProfileImage: File @link(from: "fields.localProfileImage")
         }
         type GhostTag implements Node {
-            localFeatureImage: File @link(from: "localFeatureImage___NODE")
+            localFeatureImage: File @link(from: "fields.localFeatureImage")
         }
         type GhostSettings implements Node {
-            localCoverImage: File @link(from: "localCoverImage___NODE")
-            localLogo: File @link(from: "localLogo___NODE")
-            localIcon: File @link(from: "localIcon___NODE")
+            localCoverImage: File @link(from: "fields.localCoverImage")
+            localLogo: File @link(from: "fields.localLogo")
+            localIcon: File @link(from: "fields.localIcon")
             accent_color: String
         }
 
